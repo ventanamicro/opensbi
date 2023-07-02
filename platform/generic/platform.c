@@ -21,6 +21,7 @@
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_pmu.h>
+#include <sbi_utils/hsm/fdt_hsm.h>
 #include <sbi_utils/irqchip/fdt_irqchip.h>
 #include <sbi_utils/irqchip/imsic.h>
 #include <sbi_utils/serial/fdt_serial.h>
@@ -227,6 +228,8 @@ static int generic_early_init(bool cold_boot)
 		fdt_suspend_init();
 	}
 
+	fdt_hsm_init(cold_boot);
+
 	if (!generic_plat || !generic_plat->early_init)
 		return 0;
 
@@ -252,6 +255,7 @@ static int generic_final_init(bool cold_boot)
 	fdt_cpu_fixup(fdt);
 	fdt_fixups(fdt);
 	fdt_domain_fixup(fdt);
+	fdt_hsm_fixup(fdt);
 
 	if (generic_plat && generic_plat->fdt_fixup) {
 		rc = generic_plat->fdt_fixup(fdt, generic_plat_match);
@@ -278,6 +282,8 @@ static int generic_vendor_ext_provider(long funcid,
 
 static void generic_early_exit(void)
 {
+	fdt_hsm_exit();
+
 	if (generic_plat && generic_plat->early_exit)
 		generic_plat->early_exit(generic_plat_match);
 }

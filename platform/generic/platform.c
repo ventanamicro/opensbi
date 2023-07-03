@@ -17,6 +17,7 @@
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_tlb.h>
+#include <sbi_utils/cppc/fdt_cppc.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
@@ -238,6 +239,7 @@ static int generic_early_init(bool cold_boot)
 	}
 
 	fdt_hsm_init(cold_boot);
+	fdt_cppc_init(cold_boot);
 
 	if (!generic_plat || !generic_plat->early_init)
 		return 0;
@@ -291,6 +293,7 @@ static int generic_vendor_ext_provider(long funcid,
 
 static void generic_early_exit(void)
 {
+	fdt_cppc_exit();
 	fdt_hsm_exit();
 
 	if (generic_plat && generic_plat->early_exit)

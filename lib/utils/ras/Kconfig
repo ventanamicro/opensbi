@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: BSD-2-Clause
+
+menu "RAS Agent Driver Support"
+
+config FDT_RAS
+	bool "FDT based RAS drivers"
+	depends on FDT
+	default n
+
+endmenu

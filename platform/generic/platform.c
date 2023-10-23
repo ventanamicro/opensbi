@@ -19,6 +19,7 @@
 #include <sbi/sbi_tlb.h>
 #include <sbi_utils/mpxy/fdt_mpxy.h>
 #include <sbi_utils/cppc/fdt_cppc.h>
+#include <sbi_utils/ras/fdt_ras.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
@@ -232,6 +233,7 @@ static int generic_early_init(bool cold_boot)
 
 	fdt_hsm_init(cold_boot);
 	fdt_cppc_init(cold_boot);
+	fdt_ras_init(cold_boot);
 
 	if (!generic_plat || !generic_plat->early_init)
 		return 0;
@@ -287,6 +289,7 @@ static void generic_early_exit(void)
 {
 	fdt_cppc_exit();
 	fdt_hsm_exit();
+	fdt_ras_exit();
 
 	if (generic_plat && generic_plat->early_exit)
 		generic_plat->early_exit(generic_plat_match);

@@ -7,6 +7,7 @@
  *   Anup Patel <apatel@ventanamicro.com>
  */
 
+#include <sbi/sbi_hart.h>
 #include <sbi/sbi_irqchip.h>
 #include <sbi/sbi_list.h>
 #include <sbi/sbi_platform.h>
@@ -55,6 +56,14 @@ int sbi_irqchip_init(struct sbi_scratch *scratch, bool cold_boot)
 
 	if (ext_irqfn != default_irqfn)
 		csr_set(CSR_MIE, MIP_MEIP);
+
+	if (sbi_hart_has_extension(scratch, SBI_HART_EXT_SMAIA)) {
+#if __riscv_xlen == 32
+		csr_set(CSR_MIEH, MIPH_RASHP_INTP);
+#else
+		csr_set(CSR_MIE, MIP_RASHP_INTP);
+#endif
+	}
 
 	return 0;
 }

@@ -19,6 +19,7 @@
 #include <sbi/sbi_tlb.h>
 #include <sbi_utils/mpxy/fdt_mpxy.h>
 #include <sbi_utils/cppc/fdt_cppc.h>
+#include <sbi_utils/ras/fdt_ras.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
@@ -261,6 +262,7 @@ static int generic_early_init(bool cold_boot)
 		fdt_hsm_init(fdt);
 		fdt_reset_init(fdt);
 		fdt_suspend_init(fdt);
+		fdt_ras_init(fdt);
 	}
 
 	if (!generic_plat || !generic_plat->early_init)

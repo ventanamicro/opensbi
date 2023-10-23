@@ -947,4 +947,52 @@ struct rpmi_perf_get_fast_chn_attr_resp {
 	u32 db_perserved_high;
 };
 
+/** RPMI RAS-Agent ServiceGroup Service IDs */
+enum rpmi_ras_service_id {
+	RPMI_RAS_SRV_PROBE_REQ = 0x01,
+	RPMI_RAS_SRV_SYNC_HART_ERR_REQ,
+	RPMI_RAS_SRV_SYNC_DEV_ERR_REQ,
+	RPMI_RAS_SRV_GET_PEND_VECS_REQ,
+	RPMI_RAS_SRV_SYNC_ERR_RESP,
+	RPMI_RAS_SRV_MAX_COUNT,
+};
+
+struct rpmi_ras_probe_req {
+	u32 dummy;
+};
+
+struct rpmi_ras_probe_resp {
+	s32 status;
+	u32 version;
+};
+
+struct rpmi_ras_sync_hart_err_req {
+	u32 hart_id;
+};
+
+struct rpmi_ras_sync_dev_err_req {
+	u32 dummy;
+};
+
+struct rpmi_ras_pend_vecs_req {
+#define INVALID_LAST_VEC 0xFFFFFFFFUL
+	u32 last_vec;
+};
+
+/*
+ * List of vectors needing attention. These might be
+ * more than that can be sent in single message.
+ *
+ * `remaining` will contain the number of vectors
+ * remaining. SBI implementation should request
+ * remaining vectors by GET_PEND_VECS request.
+ */
+struct rpmi_ras_sync_err_resp {
+	s32 status;
+	u32 remaining;
+	u32 returned;
+#define MAX_PEND_VECS	((RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN) - (sizeof(u32) * 3)) / sizeof(u32))
+	u32 pending_vecs[MAX_PEND_VECS];
+};
+
 #endif /* !__RPMI_MSGPROT_H__ */

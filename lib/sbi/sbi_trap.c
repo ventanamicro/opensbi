@@ -19,10 +19,14 @@
 #include <sbi/sbi_irqchip.h>
 #include <sbi/sbi_trap_ldst.h>
 #include <sbi/sbi_pmu.h>
+#include <sbi/sbi_sse.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_sse.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
+#include <sbi_utils/mailbox/mailbox.h>
+#include <sbi_utils/mailbox/rpmi_mailbox.h>
+#include <sbi/sbi_ras.h>
 
 static void sbi_trap_error_one(const struct sbi_trap_context *tcntx,
 			       const char *prefix, u32 hartid, u32 depth)
@@ -214,6 +218,31 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 	return 0;
 }
 
+void sbi_ras_process(void)
+{
+	int rc;
+	u32 pending_vectors[MAX_PEND_VECS] = { 0xfffffffful };
+	u32 nr_pending, nr_remaining;
+
+#if __riscv_xlen == 32
+	csr_clear(CSR_MIPH, MIPH_RASHP_INTP);
+#else
+	csr_clear(CSR_MIP, MIP_RASHP_INTP);
+#endif
+
+	rc = sbi_ras_sync_hart_errs(pending_vectors, &nr_pending, &nr_remaining);
+
+	if (rc)
+		return;
+
+	for (rc = 0; rc < nr_pending; rc++)
+		if (pending_vectors[rc] < SBI_SSE_EVENT_LOCAL_RAS_END
+		    && pending_vectors[rc] >= SBI_SSE_EVENT_LOCAL_RAS_START)
+			sbi_sse_inject_event(pending_vectors[rc]);
+
+	return;
+}
+
 static int sbi_trap_nonaia_irq(unsigned long irq)
 {
 	switch (irq) {
@@ -225,6 +254,9 @@ static int sbi_trap_nonaia_irq(unsigned long irq)
 		break;
 	case IRQ_PMU_OVF:
 		sbi_pmu_ovf_irq();
+		break;
+	case IRQ_RASHP_INT:
+		sbi_ras_process();
 		break;
 	case IRQ_M_EXT:
 		return sbi_irqchip_process();
@@ -256,6 +288,9 @@ static int sbi_trap_aia_irq(void)
 			rc = sbi_irqchip_process();
 			if (rc)
 				return rc;
+			break;
+		case IRQ_RASHP_INT:
+			sbi_ras_process();
 			break;
 		default:
 			return SBI_ENOENT;

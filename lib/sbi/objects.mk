@@ -98,3 +98,4 @@ libsbi-objs-y += sbi_trap_ldst.o
 libsbi-objs-y += sbi_unpriv.o
 libsbi-objs-y += sbi_expected_trap.o
 libsbi-objs-y += sbi_cppc.o
+libsbi-objs-y += sbi_ras.o

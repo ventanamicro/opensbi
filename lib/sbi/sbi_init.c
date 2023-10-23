@@ -26,6 +26,7 @@
 #include <sbi/sbi_pmu.h>
 #include <sbi/sbi_dbtr.h>
 #include <sbi/sbi_mpxy.h>
+#include <sbi/sbi_ras.h>
 #include <sbi/sbi_sse.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_string.h>
@@ -78,6 +79,7 @@ static void sbi_boot_print_general(struct sbi_scratch *scratch)
 	const struct sbi_system_reset_device *srdev;
 	const struct sbi_system_suspend_device *susp_dev;
 	const struct sbi_cppc_device *cppc_dev;
+	const struct sbi_ras_agent *ras_dev;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 
 	if (scratch->options & SBI_SCRATCH_NO_BOOT_PRINTS)
@@ -118,7 +120,9 @@ static void sbi_boot_print_general(struct sbi_scratch *scratch)
 	cppc_dev = sbi_cppc_get_device();
 	sbi_printf("Platform CPPC Device        : %s\n",
 		   (cppc_dev) ? cppc_dev->name : "---");
-
+	ras_dev = sbi_ras_get_agent();
+	sbi_printf("Platform RAS Device         : %s\n",
+		   (ras_dev) ? ras_dev->name : "---");
 	/* Firmware details */
 	sbi_printf("Firmware Base               : 0x%lx\n", scratch->fw_start);
 	sbi_printf("Firmware Size               : %d KB\n",

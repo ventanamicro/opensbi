@@ -54,6 +54,22 @@ struct sbi_rpxy_service_group {
 				       unsigned long *events_len);
 };
 
+/** A RPXY state structure */
+struct rpxy_state {
+	unsigned long shmem_size;
+	unsigned long shmem_addr;
+};
+
+/** Get the context pointer for a given hart index and domain */
+#define sbi_hartindex_to_domain_rs(__hartindex, __d) \
+	(__d)->hartindex_to_rs_table[__hartindex]
+
+/** Macro to obtain the current hart's context pointer */
+#define sbi_domain_rs_thishart_ptr()                  \
+	sbi_hartindex_to_domain_rs(                   \
+		sbi_hartid_to_hartindex(current_hartid()), \
+		sbi_domain_thishart_ptr())
+
 /** Check if some RPMI proxy service group is available */
 bool sbi_rpxy_service_group_available(void);
 

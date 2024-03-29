@@ -14,14 +14,7 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_rpxy.h>
 #include <sbi/sbi_scratch.h>
-
-struct rpxy_state {
-	unsigned long shmem_size;
-	unsigned long shmem_addr;
-};
-
-/** Offset of pointer to RPXY state in scratch space */
-static unsigned long rpxy_state_offset;
+#include <sbi/sbi_heap.h>
 
 /** List of RPMI proxy service groups */
 static SBI_LIST_HEAD(rpxy_group_list);
@@ -78,9 +71,13 @@ int sbi_rpxy_set_shmem(unsigned long shmem_size,
 		       unsigned long shmem_phys_hi,
 		       unsigned long flags)
 {
-	struct rpxy_state *rs =
-		sbi_scratch_thishart_offset_ptr(rpxy_state_offset);
-
+	struct rpxy_state *rs = sbi_domain_rs_thishart_ptr();
+	if (!rs) {
+		rs = sbi_zalloc(sizeof(struct rpxy_state));
+		if (!rs)
+			return SBI_ENOMEM;
+		sbi_domain_rs_thishart_ptr() = rs;
+	}
 	if (shmem_phys_lo == -1UL && shmem_phys_hi == -1UL) {
 		rs->shmem_size = 0;
 		rs->shmem_addr = 0;
@@ -113,10 +110,9 @@ int sbi_rpxy_send_message(u32 transport_id,
 	void *tx = NULL, *rx = NULL;
 	struct sbi_rpxy_service *srv = NULL;
 	struct sbi_rpxy_service_group *grp;
-	struct rpxy_state *rs =
-		sbi_scratch_thishart_offset_ptr(rpxy_state_offset);
+	struct rpxy_state *rs = sbi_domain_rs_thishart_ptr();
 
-	if (!rs->shmem_size)
+	if (!rs || !rs->shmem_size)
 		return SBI_ENO_SHMEM;
 
 	grp = rpxy_find_group(transport_id, service_group_id);
@@ -162,10 +158,9 @@ int sbi_rpxy_get_notification_events(u32 transport_id, u32 service_group_id,
 {
 	int rc;
 	struct sbi_rpxy_service_group *grp;
-	struct rpxy_state *rs =
-		sbi_scratch_thishart_offset_ptr(rpxy_state_offset);
+	struct rpxy_state *rs = sbi_domain_rs_thishart_ptr();
 
-	if (!rs->shmem_size)
+	if (!rs || !rs->shmem_size)
 		return SBI_ENO_SHMEM;
 
 	grp = rpxy_find_group(transport_id, service_group_id);
@@ -220,9 +215,5 @@ int sbi_rpxy_register_service_group(struct sbi_rpxy_service_group *grp)
 
 int sbi_rpxy_init(struct sbi_scratch *scratch)
 {
-	rpxy_state_offset = sbi_scratch_alloc_type_offset(struct rpxy_state);
-	if (!rpxy_state_offset)
-		return SBI_ENOMEM;
-
 	return sbi_platform_rpxy_init(sbi_platform_ptr(scratch));
 }

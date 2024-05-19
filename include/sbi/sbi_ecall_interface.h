@@ -401,6 +401,9 @@ enum sbi_sse_state {
 #define SBI_ERR_NO_SHMEM			-9
 #define SBI_ERR_INVALID_STATE			-10
 #define SBI_ERR_BAD_RANGE			-11
+#define SBI_ERR_NOT_IMPLEMENTED			-12
+#define SBI_ERR_TIMEOUT				-13
+#define SBI_ERR_IO				-14
 
 #define SBI_LAST_ERR				SBI_ERR_BAD_RANGE
 

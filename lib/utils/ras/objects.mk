@@ -15,3 +15,4 @@ libsbiutils-objs-$(CONFIG_FDT_SBI_RAS_AGENT) += ras/ghes.o
 carray-fdt_early_drivers-$(CONFIG_FDT_SBI_RAS_AGENT) += fdt_sbi_ras_agent
 libsbiutils-objs-$(CONFIG_FDT_SBI_RAS_AGENT) += ras/fdt_ras_agent.o
 libsbiutils-objs-$(CONFIG_FDT_SBI_RAS_AGENT) += ras/reri_drv.o
+libsbiutils-objs-$(CONFIG_FDT_SBI_RAS_AGENT) += ras/ras_agent_mpxy.o

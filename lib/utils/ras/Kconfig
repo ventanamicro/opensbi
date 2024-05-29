@@ -11,7 +11,7 @@ if FDT_RAS
 
 config FDT_RAS_RPMI
 	bool "FDT RPMI RAS driver"
-	default y
+	default n
 
 endif
 

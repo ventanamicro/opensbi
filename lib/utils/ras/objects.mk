@@ -9,3 +9,5 @@
 
 carray-fdt_early_drivers-$(CONFIG_FDT_RAS_RPMI) += fdt_ras_rpmi
 libsbiutils-objs-$(CONFIG_FDT_RAS_RPMI) += ras/fdt_ras_rpmi.o
+
+libsbiutils-objs-$(CONFIG_FDT_SBI_RAS_AGENT) += ras/ghes.o

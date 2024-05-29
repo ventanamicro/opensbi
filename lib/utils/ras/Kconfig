@@ -13,6 +13,9 @@ config FDT_RAS_RPMI
 	bool "FDT RPMI RAS driver"
 	default n
 
+config FDT_SBI_RAS_AGENT
+	bool "FDT SBI RAS Agent driver"
+	default y
 endif
 
 endmenu

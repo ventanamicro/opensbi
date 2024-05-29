@@ -16,6 +16,7 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_console.h>
 #include <sbi_utils/ras/reri_drv.h>
+#include <sbi_utils/ras/ras_agent_mpxy.h>
 #include <sbi_utils/fdt/fdt_driver.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/mailbox/fdt_mailbox.h>
@@ -66,6 +67,11 @@ static int sbi_ras_agent_cold_init(const void *fdt, int nodeoff,
 
 	/* initialize reri driver */
 	ret = reri_drv_init(fdt, nodeoff, match);
+	if (ret)
+		return ret;
+
+	/* initialize mpxy driver for ras agent */
+	ret = ras_mpxy_init(fdt, nodeoff);
 	if (ret)
 		return ret;
 

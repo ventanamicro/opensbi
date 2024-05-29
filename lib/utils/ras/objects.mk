@@ -12,3 +12,5 @@ libsbiutils-objs-$(CONFIG_FDT_RAS) += ras/fdt_ras_drivers.o
 
 carray-fdt_ras_drivers-$(CONFIG_FDT_RAS_RPMI) += fdt_ras_rpmi
 libsbiutils-objs-$(CONFIG_FDT_RAS_RPMI) += ras/fdt_ras_rpmi.o
+
+libsbiutils-objs-$(CONFIG_FDT_SBI_RAS_AGENT) += ras/ghes.o

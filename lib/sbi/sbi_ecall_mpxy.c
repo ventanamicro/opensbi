@@ -23,6 +23,9 @@ static int sbi_ecall_mpxy_handler(unsigned long extid, unsigned long funcid,
 	case SBI_EXT_MPXY_SET_SHMEM:
 		ret = sbi_mpxy_set_shmem(regs->a0, regs->a1, regs->a2, regs->a3);
 		break;
+	case SBI_EXT_MPXY_GET_CHANNEL_IDS:
+		ret = sbi_mpxy_get_channel_ids(regs->a0);
+		break;
 	case SBI_EXT_MPXY_READ_ATTRS:
 		ret = sbi_mpxy_read_attrs(regs->a0, regs->a1, regs->a2);
 		break;

@@ -104,6 +104,7 @@ struct sbi_mpxy_channel {
 
 	/**
 	 * Read message protocol attributes
+	 * NOTE: inmem requires little-endian byte-ordering
 	 */
 	int (*read_attributes)(struct sbi_mpxy_channel *channel,
 				u32 *outmem,
@@ -112,6 +113,7 @@ struct sbi_mpxy_channel {
 
 	/**
 	 * Write message protocol attributes
+	 * NOTE: outmem requires little-endian byte-ordering
 	 */
 	int (*write_attributes)(struct sbi_mpxy_channel *channel,
 				u32 *inmem,
@@ -120,12 +122,17 @@ struct sbi_mpxy_channel {
 	/**
 	 * Send a message over a channel
 	 * NOTE: For message without response, resp_len == NULL
+	 * msgbuf requires little-endian byte-ordering
 	 */
 	int (*send_message)(struct sbi_mpxy_channel *channel,
 			    u32 msg_id, void *msgbuf, u32 msg_len,
 			    void *respbuf, u32 resp_max_len,
 			    unsigned long *resp_len);
 
+	/**
+	 * Get notifications events if supported on a channel
+	 * NOTE: eventsbuf requires little-endian byte-ordering
+	 */
 	int (*get_notification_events)(struct sbi_mpxy_channel *channel,
 					void *eventsbuf, u32 bufsize,
 					unsigned long *events_len);
@@ -148,6 +155,8 @@ int sbi_mpxy_set_shmem(unsigned long shmem_size,
 			unsigned long shmem_phys_hi,
 			unsigned long flags);
 
+/** Get channel IDs list */
+int sbi_mpxy_get_channel_ids(u32 start_index);
 
 /** Read MPXY channel attributes */
 int sbi_mpxy_read_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count);

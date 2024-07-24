@@ -134,7 +134,7 @@ static void mpxy_copy_std_attrs(u32 *outmem, u32 *inmem, u32 count)
 {
 	int idx;
 	for (idx = 0; idx < count; idx++)
-		outmem[idx] = inmem[idx];
+		outmem[idx] = cpu_to_le32(inmem[idx]);
 }
 
 /** Check if any channel is registered with mpxy framework */
@@ -263,6 +263,61 @@ int sbi_mpxy_set_shmem(unsigned long shmem_size, unsigned long shmem_phys_lo,
 	rs->shmem.shmem_size	= shmem_size;
 	rs->shmem.shmem_addr_lo = shmem_phys_lo;
 	rs->shmem.shmem_addr_hi = shmem_phys_hi;
+
+	return SBI_SUCCESS;
+}
+
+int sbi_mpxy_get_channel_ids(u32 start_index)
+{
+	u32 node_index = 0, node_ret = 0;
+	u32 remaining, returned, max_channelids;
+	u32 channels_count = 0;
+	u32 *shmem_base;
+	struct sbi_mpxy_channel *channel;
+	
+	// Check if the shared memory is being setup or not.
+	struct mpxy_state *rs =
+		sbi_scratch_thishart_offset_ptr(mpxy_state_offset);
+
+	if (!mpxy_shmem_enabled(rs))
+		return SBI_ERR_NO_SHMEM;
+	
+	sbi_list_for_each_entry(channel, &mpxy_channel_list, head)
+		channels_count += 1;
+	
+	if (start_index > channels_count)
+		return SBI_ERR_INVALID_PARAM;
+
+	shmem_base = hart_shmem_base(rs);
+	sbi_hart_map_saddr((unsigned long)hart_shmem_base(rs),
+				rs->shmem.shmem_size);
+
+	/** number of channel ids which can be stored in shmem adjusting
+	 * for remaining and returned fields */
+	max_channelids = (rs->shmem.shmem_size / sizeof(u32)) - 2;
+	/* total remaining from the start index */
+	remaining = channels_count - start_index;
+	/* how many can be returned */
+	returned = (remaining > max_channelids)? max_channelids : remaining;
+
+	// Iterate over the list of channels to get the channel ids.
+	sbi_list_for_each_entry(channel, &mpxy_channel_list, head) {
+		if (node_index >= start_index &&
+			node_index < (start_index + returned)) {
+			shmem_base[2 + node_ret] = cpu_to_le32(channel->channel_id);
+			node_ret += 1;
+		}
+
+		node_index += 1;
+	}
+
+	/* final remaininig channel ids */
+	remaining = channels_count - (start_index + returned);
+
+	shmem_base[0] = cpu_to_le32(remaining);
+	shmem_base[1] = cpu_to_le32(returned);
+
+	sbi_hart_unmap_saddr();
 
 	return SBI_SUCCESS;
 }
@@ -447,7 +502,7 @@ int sbi_mpxy_write_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count)
 		/** Verify the attribute ids range and values */
 		mem_idx = 0;
 		for (attr_id = base_attr_id; attr_id <= end_id; attr_id++) {
-			attr_val = mem_ptr[mem_idx++];
+			attr_val = le32_to_cpu(mem_ptr[mem_idx++]);
 			ret = mpxy_check_write_std_attr(channel,
 							attr_id, attr_val);
 			if (ret)
@@ -457,7 +512,7 @@ int sbi_mpxy_write_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count)
 		/* Write the attribute ids values */
 		mem_idx = 0;
 		for (attr_id = base_attr_id; attr_id <= end_id; attr_id++) {
-			attr_val = mem_ptr[mem_idx++];
+			attr_val = le32_to_cpu(mem_ptr[mem_idx++]);
 			mpxy_write_std_attr(channel, attr_id, attr_val);
 		}
 	} else {/**

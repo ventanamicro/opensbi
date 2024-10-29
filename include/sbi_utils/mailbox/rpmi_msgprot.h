@@ -116,15 +116,53 @@ enum rpmi_message_type {
 
 /** RPMI Error Types */
 enum rpmi_error {
-	RPMI_SUCCESS = 0,
-	RPMI_ERR_FAILED = -1,
-	RPMI_ERR_NOTSUPP = -2,
-	RPMI_ERR_INVAL = -3,
-	RPMI_ERR_DENIED = -4,
-	RPMI_ERR_NOTFOUND = -5,
-	RPMI_ERR_OUTOFRANGE = -6,
-	RPMI_ERR_OUTOFRES = -7,
-	RPMI_ERR_HWFAULT = -8,
+	/* Success */
+	RPMI_SUCCESS		= 0,
+	/* General failure  */
+	RPMI_ERR_FAILED		= -1,
+	/* Service or feature not supported */
+	RPMI_ERR_NOTSUPP	= -2,
+	/* Invalid Parameter  */
+	RPMI_ERR_INVALID_PARAM    = -3,
+	/*
+	 * Denied to insufficient permissions
+	 * or due to unmet prerequisite
+	 */
+	RPMI_ERR_DENIED		= -4,
+	/* Invalid address or offset */
+	RPMI_ERR_INVALID_ADDR	= -5,
+	/*
+	 * Operation failed as it was already in
+	 * progress or the state has changed already
+	 * for which the operation was carried out.
+	 */
+	RPMI_ERR_ALREADY	= -6,
+	/*
+	 * Error in implementation which violates
+	 * the specification version
+	 */
+	RPMI_ERR_EXTENSION	= -7,
+	/* Operation failed due to hardware issues */
+	RPMI_ERR_HW_FAULT	= -8,
+	/* System, device or resource is busy */
+	RPMI_ERR_BUSY		= -9,
+	/* System or device or resource in invalid state */
+	RPMI_ERR_INVALID_STATE	= -10,
+	/* Index, offset or address is out of range */
+	RPMI_ERR_BAD_RANGE	= -11,
+	/* Operation timed out */
+	RPMI_ERR_TIMEOUT	= -12,
+	/*
+	 * Error in input or output or
+	 * error in sending or receiving data
+	 * through communication medium
+	 */
+	RPMI_ERR_IO		= -13,
+	/* No data available */
+	RPMI_ERR_NO_DATA	= -14,
+	RPMI_ERR_RESERVED_START	= -15,
+	RPMI_ERR_RESERVED_END	= -127,
+	RPMI_ERR_VENDOR_START	= -128,
 };
 
 /** RPMI Message Arguments */

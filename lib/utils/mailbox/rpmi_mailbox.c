@@ -13,27 +13,39 @@
 
 int rpmi_xlate_error(enum rpmi_error error)
 {
-	switch (error) {
-	case RPMI_SUCCESS:
-		return SBI_OK;
-	case RPMI_ERR_FAILED:
-		return SBI_EFAIL;
-	case RPMI_ERR_NOTSUPP:
-		return SBI_ENOTSUPP;
-	case RPMI_ERR_INVAL:
-		return SBI_EINVAL;
-	case RPMI_ERR_DENIED:
-		return SBI_EDENIED;
-	case RPMI_ERR_NOTFOUND:
-		return SBI_ENOENT;
-	case RPMI_ERR_OUTOFRANGE:
-		return SBI_EINVAL;
-	case RPMI_ERR_OUTOFRES:
-		return SBI_ENOSPC;
-	case RPMI_ERR_HWFAULT:
-		return SBI_EIO;
-	default:
-		return SBI_EUNKNOWN;
+	switch(error) {
+		case RPMI_SUCCESS:
+			return SBI_OK;
+		case RPMI_ERR_FAILED:
+			return SBI_EFAIL;
+		case RPMI_ERR_NOTSUPP:
+			return SBI_ENOTSUPP;
+		case RPMI_ERR_INVALID_PARAM:
+			return SBI_EINVAL;
+		case RPMI_ERR_DENIED:
+			return SBI_EDENIED;
+		case RPMI_ERR_INVALID_ADDR:
+			return SBI_EINVALID_ADDR;
+		case RPMI_ERR_ALREADY:
+			return SBI_EALREADY;
+		case RPMI_ERR_EXTENSION:
+			return SBI_EFAIL;
+		case RPMI_ERR_HW_FAULT:
+			return SBI_EIO;
+		case RPMI_ERR_BUSY:
+			return SBI_EFAIL;
+		case RPMI_ERR_INVALID_STATE:
+			return SBI_EINVALID_STATE;
+		case RPMI_ERR_BAD_RANGE:
+			return SBI_EBAD_RANGE;
+		case RPMI_ERR_TIMEOUT:
+			return SBI_ETIMEOUT;
+		case RPMI_ERR_IO:
+			return SBI_EIO;
+		case RPMI_ERR_NO_DATA:
+			return SBI_EFAIL;
+		default:
+			return SBI_EUNKNOWN;
 	}
 }
 

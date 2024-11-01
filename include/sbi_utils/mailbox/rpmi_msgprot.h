@@ -217,10 +217,12 @@ enum rpmi_base_service_id {
 	RPMI_BASE_SRV_SET_MSI = 0x08,
 };
 
+#define RPMI_BASE_FLAGS_F0_PRIVILEGE		(1U << 2)
+#define RPMI_BASE_FLAGS_F0_EV_NOTIFY		(1U << 1)
+#define RPMI_BASE_FLAGS_F0_MSI_EN		(1U)
+
 struct rpmi_base_get_attributes_resp {
 	s32 status_code;
-#define RPMI_BASE_FLAGS_F0_EV_NOTIFY		(1U << 31)
-#define RPMI_BASE_FLAGS_F0_MSI_EN			(1U << 30)
 	u32 f0;
 	u32 f1;
 	u32 f2;

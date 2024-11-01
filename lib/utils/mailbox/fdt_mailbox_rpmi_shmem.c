@@ -133,6 +133,7 @@ struct rpmi_shmem_mbox_controller {
 	u32 impl_id;
 	u32 spec_version;
 	struct {
+		u8 f0_priv_level;
 		bool f0_ev_notif_en;
 		bool f0_msi_en;
 	} base_flags;
@@ -643,8 +644,13 @@ static int rpmi_shmem_mbox_init(const void *fdt, int nodeoff, u32 phandle,
 	if (ret)
 		goto fail_free_chan;
 
+	/* 1: M-mode, 0: S-mode */
+	mctl->base_flags.f0_priv_level =
+			resp.f0 & RPMI_BASE_FLAGS_F0_PRIVILEGE ? 1 : 0;
+	/* 1: Supported, 0: Not Supported */
 	mctl->base_flags.f0_ev_notif_en =
 			resp.f0 & RPMI_BASE_FLAGS_F0_EV_NOTIFY ? 1 : 0;
+	/* 1: Supported, 0: Not Supported */
 	mctl->base_flags.f0_msi_en =
 			resp.f0 & RPMI_BASE_FLAGS_F0_MSI_EN ? 1 : 0;
 

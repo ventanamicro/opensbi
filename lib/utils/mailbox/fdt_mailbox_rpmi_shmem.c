@@ -132,6 +132,8 @@ struct rpmi_shmem_mbox_controller {
 	u32 impl_version;
 	u32 impl_id;
 	u32 spec_version;
+	u32 plat_info_len;
+	char *plat_info;
 	struct {
 		u8 f0_priv_level;
 		bool f0_ev_notif_en;
@@ -362,6 +364,43 @@ static int smq_tx(struct rpmi_shmem_mbox_controller *mctl,
 	} while (txretry < xfer->tx_timeout);
 
 	return SBI_ETIMEDOUT;
+}
+
+static int rpmi_get_platform_info(struct rpmi_shmem_mbox_controller *mctl)
+{
+	int ret = SBI_OK;
+
+	/**
+	 * platform string can occupy max possible size
+	 * max possible space in the message data as
+	 * per the format
+	 */
+	struct rpmi_base_get_platform_info_resp *resp =
+			sbi_zalloc(RPMI_MSG_DATA_SIZE(mctl->slot_size));
+	if (!resp)
+		return SBI_ENOMEM;
+
+	ret = rpmi_normal_request_with_status(mctl->base_chan,
+				 RPMI_BASE_SRV_GET_PLATFORM_INFO,
+				 NULL, 0, 0,
+				 resp,
+				 RPMI_MSG_DATA_SIZE(mctl->slot_size)/4,
+				 RPMI_MSG_DATA_SIZE(mctl->slot_size)/4);
+	if (ret)
+		goto fail_free_resp;
+
+	mctl->plat_info_len = resp->plat_info_len;
+	mctl->plat_info = sbi_zalloc(mctl->plat_info_len);
+	if (!mctl->plat_info) {
+		ret = SBI_ENOMEM;
+		goto fail_free_resp;
+	}
+
+	sbi_strncpy(mctl->plat_info, resp->plat_info, mctl->plat_info_len);
+
+fail_free_resp:
+	sbi_free(resp);
+	return ret;
 }
 
 static int smq_base_get_two_u32(struct rpmi_shmem_mbox_controller *mctl,
@@ -653,6 +692,12 @@ static int rpmi_shmem_mbox_init(const void *fdt, int nodeoff, u32 phandle,
 	/* 1: Supported, 0: Not Supported */
 	mctl->base_flags.f0_msi_en =
 			resp.f0 & RPMI_BASE_FLAGS_F0_MSI_EN ? 1 : 0;
+
+	/**
+	 * continue without platform information string if not
+	 * available or if an error is encountered while fetching
+	 */
+	rpmi_get_platform_info(mctl);
 
 	return 0;
 

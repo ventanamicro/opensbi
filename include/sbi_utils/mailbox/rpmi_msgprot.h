@@ -234,6 +234,12 @@ struct rpmi_base_get_attributes_resp {
 	u32 f3;
 };
 
+struct rpmi_base_get_platform_info_resp {
+	u32 status;
+	u32 plat_info_len;
+	char plat_info[];
+};
+
 /** RPMI System Reset ServiceGroup Service IDs */
 enum rpmi_system_reset_service_id {
 	RPMI_SYSRST_SRV_ENABLE_NOTIFICATION = 0x01,

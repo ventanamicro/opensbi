@@ -25,8 +25,6 @@
 
 /**************** RPMI Transport Structures and Macros ***********/
 
-#define RPMI_MAILBOX_CHANNELS_MAX	(16)
-
 #define GET_SERVICEGROUP_ID(msg)		\
 ({						\
 	struct rpmi_message *mbuf = msg;	\
@@ -119,6 +117,14 @@ struct smq_queue_ctx {
 	char name[RPMI_NAME_CHARS_MAX];
 };
 
+struct rpmi_srvgrp_chan {
+	u32 servicegroup_id;
+	struct mbox_chan chan;
+};
+
+#define to_srvgrp_chan(mbox_chan)	\
+		container_of(mbox_chan, struct rpmi_srvgrp_chan, chan);
+
 struct rpmi_shmem_mbox_controller {
 	/* Driver specific members */
 	u32 slot_size;
@@ -127,7 +133,6 @@ struct rpmi_shmem_mbox_controller {
 	struct smq_queue_ctx queue_ctx_tbl[RPMI_QUEUE_IDX_MAX_COUNT];
 	/* Mailbox framework related members */
 	struct mbox_controller controller;
-	struct mbox_chan channels[RPMI_MAILBOX_CHANNELS_MAX];
 	struct mbox_chan *base_chan;
 	u32 impl_version;
 	u32 impl_id;
@@ -297,8 +302,7 @@ static int smq_rx(struct rpmi_shmem_mbox_controller *mctl,
 	int ret, rxretry = 0;
 	struct smq_queue_ctx *qctx;
 
-	if (mctl->queue_count < queue_id ||
-	    RPMI_MAILBOX_CHANNELS_MAX <= service_group_id) {
+	if (mctl->queue_count < queue_id) {
 		sbi_printf("%s: invalid queue_id or service_group_id\n",
 			   __func__);
 		return SBI_EINVAL;
@@ -333,8 +337,7 @@ static int smq_tx(struct rpmi_shmem_mbox_controller *mctl,
 	int ret, txretry = 0;
 	struct smq_queue_ctx *qctx;
 
-	if (mctl->queue_count < queue_id ||
-	    RPMI_MAILBOX_CHANNELS_MAX <= service_group_id) {
+	if (mctl->queue_count < queue_id) {
 		sbi_printf("%s: invalid queue_id or service_group_id\n",
 			   __func__);
 		return SBI_EINVAL;
@@ -421,6 +424,8 @@ static int rpmi_shmem_mbox_xfer(struct mbox_chan *chan, struct mbox_xfer *xfer)
 			container_of(chan->mbox,
 				     struct rpmi_shmem_mbox_controller,
 				     controller);
+	struct rpmi_srvgrp_chan *srvgrp_chan = to_srvgrp_chan(chan);
+
 	struct rpmi_message_args *args = xfer->args;
 	bool do_tx = (args->flags & RPMI_MSG_FLAGS_NO_TX) ? false : true;
 	bool do_rx = (args->flags & RPMI_MSG_FLAGS_NO_RX) ? false : true;
@@ -462,13 +467,13 @@ static int rpmi_shmem_mbox_xfer(struct mbox_chan *chan, struct mbox_xfer *xfer)
 	}
 
 	if (do_tx) {
-		ret = smq_tx(mctl, tx_qid, chan - mctl->channels, xfer);
+		ret = smq_tx(mctl, tx_qid, srvgrp_chan->servicegroup_id, xfer);
 		if (ret)
 			return ret;
 	}
 
 	if (do_rx) {
-		ret = smq_rx(mctl, rx_qid, chan - mctl->channels, xfer);
+		ret = smq_rx(mctl, rx_qid, srvgrp_chan->servicegroup_id, xfer);
 		if (ret)
 			return ret;
 	}
@@ -476,18 +481,23 @@ static int rpmi_shmem_mbox_xfer(struct mbox_chan *chan, struct mbox_xfer *xfer)
 	return 0;
 }
 
+
 static struct mbox_chan *rpmi_shmem_mbox_request_chan(
 						struct mbox_controller *mbox,
 						u32 *chan_args)
 {
 	int ret;
+	struct rpmi_srvgrp_chan *srvgrp_chan;
+
 	u32 tval[2] = { 0 };
 	struct rpmi_shmem_mbox_controller *mctl =
 			container_of(mbox,
 				     struct rpmi_shmem_mbox_controller,
 				     controller);
 
-	if (chan_args[0] >= RPMI_MAILBOX_CHANNELS_MAX)
+	/* Service group id not defined or in reserved range is invalid */
+	if (chan_args[0] >= RPMI_SRVGRP_ID_MAX_COUNT &&
+		chan_args[0] <= RPMI_SRVGRP_RESERVE_END)
 		return NULL;
 
 	/* Base serivce group is always present so probe other groups */
@@ -500,14 +510,20 @@ static struct mbox_chan *rpmi_shmem_mbox_request_chan(
 			return NULL;
 	}
 
-	return &mctl->channels[chan_args[0]];
+	srvgrp_chan = sbi_zalloc(sizeof(*srvgrp_chan));
+	if (!srvgrp_chan)
+		return NULL;
+
+	srvgrp_chan->servicegroup_id = chan_args[0];
+
+	return &srvgrp_chan->chan;
 }
 
-static void *rpmi_shmem_mbox_free_chan(struct mbox_controller *mbox,
-					struct mbox_chan *chan)
+static void rpmi_shmem_mbox_free_chan(struct mbox_controller *mbox,
+				      struct mbox_chan *chan)
 {
-	/* Nothing to do here */
-	return NULL;
+	struct rpmi_srvgrp_chan *srvgrp_chan = to_srvgrp_chan(chan);
+	sbi_free(srvgrp_chan);
 }
 
 extern struct fdt_mailbox fdt_mailbox_rpmi_shmem;
@@ -642,7 +658,7 @@ static int rpmi_shmem_mbox_init(const void *fdt, int nodeoff, u32 phandle,
 	ret = mbox_controller_add(&mctl->controller);
 	if (ret)
 		goto fail_free_controller;
-
+	
 	/* Request base service group channel */
 	tval[0] = RPMI_SRVGRP_BASE;
 	mctl->base_chan = mbox_controller_request_chan(&mctl->controller,

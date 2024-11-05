@@ -139,7 +139,7 @@ struct mbox_controller {
 	struct mbox_chan *(*request_chan)(struct mbox_controller *mbox,
 					  u32 *chan_args);
 	/** Free a mailbox channel from the mailbox controller */
-	void *(*free_chan)(struct mbox_controller *mbox,
+	void (*free_chan)(struct mbox_controller *mbox,
 			   struct mbox_chan *chan);
 	/** Transfer data over mailbox channel */
 	int (*xfer)(struct mbox_chan *chan, struct mbox_xfer *xfer);

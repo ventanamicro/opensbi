@@ -30,14 +30,14 @@ static int rpmi_system_reset_type_check(u32 reset_type)
 	struct rpmi_sysrst_get_reset_attributes_resp resp;
 
 	ret = rpmi_normal_request_with_status(sysreset_ctx.chan,
-		RPMI_SYSRST_SRV_GET_SYSTEM_RESET_ATTRIBUTES, &reset_type,
+		RPMI_SYSRST_SRV_GET_ATTRIBUTES, &reset_type,
 		rpmi_u32_count(reset_type), rpmi_u32_count(reset_type),
 		&resp, rpmi_u32_count(resp), rpmi_u32_count(resp));
 	if (ret) {
 		return 0;
 	}
 
-	return (resp.flags & RPMI_SYSRST_FLAGS_SUPPORTED_MASK) ? 1 : 0;
+	return (resp.flags & RPMI_SYSRST_ATTRS_FLAGS_RESETTYPE_MASK) ? 1 : 0;
 }
 
 /**
@@ -84,13 +84,13 @@ static void rpmi_system_reset(u32 type, u32 reason)
 
 	switch (type) {
 	case SBI_SRST_RESET_TYPE_SHUTDOWN:
-		reset_type = RPMI_SYSRST_SHUTDOWN;
+		reset_type = RPMI_SYSRST_TYPE_SHUTDOWN;
 		break;
 	case SBI_SRST_RESET_TYPE_COLD_REBOOT:
-		reset_type = RPMI_SYSRST_COLD_RESET;
+		reset_type = RPMI_SYSRST_TYPE_COLD_REBOOT;
 		break;
 	case SBI_SRST_RESET_TYPE_WARM_REBOOT:
-		reset_type = RPMI_SYSRST_WARM_RESET;
+		reset_type = RPMI_SYSRST_TYPE_WARM_REBOOT;
 		break;
 	default:
 		return;
@@ -123,7 +123,7 @@ static int rpmi_reset_init(const void *fdt, int nodeoff,
 		return ret;
 
 	sysreset_ctx.warm_reset_support =
-			rpmi_system_reset_type_check(RPMI_SYSRST_WARM_RESET);
+			rpmi_system_reset_type_check(RPMI_SYSRST_TYPE_WARM_REBOOT);
 
 	sbi_system_reset_add_device(&rpmi_reset_dev);
 

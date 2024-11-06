@@ -253,25 +253,26 @@ struct rpmi_base_get_platform_info_resp {
 /** RPMI System Reset ServiceGroup Service IDs */
 enum rpmi_system_reset_service_id {
 	RPMI_SYSRST_SRV_ENABLE_NOTIFICATION = 0x01,
-	RPMI_SYSRST_SRV_GET_SYSTEM_RESET_ATTRIBUTES = 0x02,
+	RPMI_SYSRST_SRV_GET_ATTRIBUTES = 0x02,
 	RPMI_SYSRST_SRV_SYSTEM_RESET = 0x03,
 	RPMI_SYSRST_SRV_ID_MAX_COUNT,
 };
 
 /** RPMI System Reset types */
 enum rpmi_sysrst_reset_type {
-	RPMI_SYSRST_SHUTDOWN = 0,
-	RPMI_SYSRST_COLD_RESET = 1,
-	RPMI_SYSRST_WARM_RESET = 2,
-	RPMI_SYSRST_MAX_IDN_COUNT,
+	RPMI_SYSRST_TYPE_SHUTDOWN = 0x0,
+	RPMI_SYSRST_TYPE_COLD_REBOOT = 0x1,
+	RPMI_SYSRST_TYPE_WARM_REBOOT = 0x2,
+	RPMI_SYSRST_TYPE_MAX,
 };
+
+#define RPMI_SYSRST_ATTRS_FLAGS_RESETTYPE_POS		(1)
+#define RPMI_SYSRST_ATTRS_FLAGS_RESETTYPE_MASK		\
+			(1U << RPMI_SYSRST_ATTRS_FLAGS_RESETTYPE_POS)
 
 /** Response for system reset attributes */
 struct rpmi_sysrst_get_reset_attributes_resp {
 	s32 status;
-#define RPMI_SYSRST_FLAGS_SUPPORTED_POS		(31)
-#define RPMI_SYSRST_FLAGS_SUPPORTED_MASK		\
-			(1U << RPMI_SYSRST_FLAGS_SUPPORTED_POS)
 	u32 flags;
 };
 

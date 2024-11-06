@@ -279,7 +279,7 @@ struct rpmi_sysrst_get_reset_attributes_resp {
 /** RPMI System Suspend ServiceGroup Service IDs */
 enum rpmi_system_suspend_service_id {
 	RPMI_SYSSUSP_SRV_ENABLE_NOTIFICATION = 0x01,
-	RPMI_SYSSUSP_SRV_GET_SYSTEM_SUSPEND_ATTRIBUTES = 0x02,
+	RPMI_SYSSUSP_SRV_GET_ATTRIBUTES = 0x02,
 	RPMI_SYSSUSP_SRV_SYSTEM_SUSPEND = 0x03,
 	RPMI_SYSSUSP_SRV_ID_MAX_COUNT,
 };
@@ -289,11 +289,12 @@ struct rpmi_syssusp_get_attr_req {
 	u32 susp_type;
 };
 
+#define RPMI_SYSSUSP_ATTRS_FLAGS_RESUMEADDR	(1U << 1)
+#define RPMI_SYSSUSP_ATTRS_FLAGS_SUSPENDTYPE	1U
+
 /** Response for system suspend attributes */
 struct rpmi_syssusp_get_attr_resp {
 	s32 status;
-#define RPMI_SYSSUSP_FLAGS_CUSTOM_RESUME_ADDR_SUPPORTED	(1U << 31)
-#define RPMI_SYSSUSP_FLAGS_SUPPORTED			(1U << 30)
 	u32 flags;
 };
 

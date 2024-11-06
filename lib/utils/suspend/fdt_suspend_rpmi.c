@@ -33,7 +33,7 @@ static int rpmi_syssusp_attrs(uint32_t *attrs)
 	req.susp_type = SBI_SUSP_SLEEP_TYPE_SUSPEND;
 
 	rc = rpmi_normal_request_with_status(
-		syssusp_ctx.chan, RPMI_SYSSUSP_SRV_GET_SYSTEM_SUSPEND_ATTRIBUTES,
+		syssusp_ctx.chan, RPMI_SYSSUSP_SRV_GET_ATTRIBUTES,
 		&req, rpmi_u32_count(req), rpmi_u32_count(req),
 		&resp, rpmi_u32_count(resp), rpmi_u32_count(resp));
 	if (rc)
@@ -117,9 +117,10 @@ static int rpmi_suspend_init(const void *fdt, int nodeoff,
 	if (rc)
 		return rc;
 
-	syssusp_ctx.suspend_supported = attrs & RPMI_SYSSUSP_FLAGS_SUPPORTED;
+	syssusp_ctx.suspend_supported =
+			attrs & RPMI_SYSSUSP_ATTRS_FLAGS_SUSPENDTYPE;
 	syssusp_ctx.cust_res_addr_supported =
-			attrs & RPMI_SYSSUSP_FLAGS_CUSTOM_RESUME_ADDR_SUPPORTED;
+			attrs & RPMI_SYSSUSP_ATTRS_FLAGS_RESUMEADDR;
 
 	sbi_system_suspend_set_device(&rpmi_suspend_dev);
 

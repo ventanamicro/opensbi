@@ -209,6 +209,8 @@ static int rpmi_hsm_get_suspend_states(struct mbox_chan *chan,
 		if (rc)
 			return rc;
 
+		state->local_timer_stop =
+			(dresp.flags & RPMI_HSM_SUSPEND_INFO_FLAGS_TIMER_STOP) ? true : false;
 		state->entry_latency_us = dresp.entry_latency_us;
 		state->exit_latency_us = dresp.exit_latency_us;
 		state->wakeup_latency_us = dresp.wakeup_latency_us;

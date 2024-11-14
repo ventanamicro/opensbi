@@ -455,8 +455,10 @@ struct rpmi_cppc_get_fastchan_offset_req {
 
 struct rpmi_cppc_get_fastchan_offset_resp {
 	s32 status;
-	u32 fc_offset_lo;
-	u32 fc_offset_hi;
+	u32 fc_perf_request_offset_lo;
+	u32 fc_perf_request_offset_hi;
+	u32 fc_perf_feedback_offset_lo;
+	u32 fc_perf_feedback_offset_hi;
 };
 
 #define RPMI_CPPC_FAST_CHANNEL_CPPC_MODE_POS		3

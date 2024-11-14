@@ -34,7 +34,8 @@ struct rpmi_cppc {
 	bool fc_db_supported;
 	enum rpmi_cppc_fast_channel_db_width fc_db_width;
 	enum rpmi_cppc_fast_channel_cppc_mode mode;
-	ulong fc_addr;
+	ulong fc_perf_request_addr;
+	ulong fc_perf_feedback_addr;
 	ulong fc_db_addr;
 	u64 fc_db_setmask;
 	u64 fc_db_preservemask;
@@ -154,7 +155,7 @@ static int rpmi_cppc_write(unsigned long reg, u64 val)
 			&resp, rpmi_u32_count(resp), rpmi_u32_count(resp));
 	} else {
 		/* use fast path writes for desired_perf in passive mode */
-		writel((u32)val, (void *)cppc->fc_addr);
+		writel((u32)val, (void *)cppc->fc_perf_request_addr);
 
 		if (cppc->fc_db_supported)
 			rpmi_cppc_fc_db_trigger(cppc);
@@ -298,12 +299,18 @@ static int rpmi_cppc_update_hart_scratch(struct mbox_chan *chan)
 					continue;
 
 #if __riscv_xlen == 32
-				cppc->fc_addr = fc_region_addr +
-							hfresp.fc_offset_lo;
+				cppc->fc_perf_request_addr = fc_region_addr +
+							hfresp.fc_perf_request_offset_lo;
+				cppc->fc_perf_feedback_addr = fc_region_addr +
+							hfresp.fc_perf_request_feedback_lo;
 #else
-				cppc->fc_addr = fc_region_addr +
-					((ulong)hfresp.fc_offset_hi << 32 |
-					hfresp.fc_offset_lo);
+				cppc->fc_perf_request_addr = fc_region_addr +
+					((ulong)hfresp.fc_perf_request_offset_hi << 32 |
+					hfresp.fc_perf_request_offset_lo);
+
+				cppc->fc_perf_feedback_addr = fc_region_addr +
+					((ulong)hfresp.fc_perf_feedback_offset_hi << 32 |
+					hfresp.fc_perf_feedback_offset_lo);
 #endif
 				cppc->fc_db_supported = fc_db_supported;
 				cppc->fc_db_addr = fc_db_addr;
@@ -313,7 +320,8 @@ static int rpmi_cppc_update_hart_scratch(struct mbox_chan *chan)
 				cppc->fc_db_preservemask = fc_db_preservemask;
 			}
 			else {
-				cppc->fc_addr = 0;
+				cppc->fc_perf_request_addr = 0;
+				cppc->fc_perf_feedback_addr = 0;
 				cppc->fc_db_supported = 0;
 				cppc->fc_db_addr = 0;
 				cppc->fc_db_width = 0;

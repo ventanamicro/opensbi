@@ -29,14 +29,39 @@ static SBI_LIST_HEAD(mpxy_channel_list);
 #define INVALID_ADDR		(-1U)
 
 /** MPXY Attribute size in bytes */
-#define ATTR_SIZE			(4)
+#define ATTR_SIZE		(4)
 
 /** Channel Capability - MSI */
 #define CAP_MSI_POS		0
 #define CAP_MSI_MASK		(1U << CAP_MSI_POS)
+
 /** Channel Capability - SSE */
 #define CAP_SSE_POS		1
 #define CAP_SSE_MASK		(1U << CAP_SSE_POS)
+
+/** Channel Capability - Events State */
+#define CAP_EVENTSSTATE_POS	2
+#define CAP_EVENTSSTATE_MASK	(1U << CAP_EVENTSSTATE_POS)
+
+/** Channel Capability - Get Notification function support */
+#define CAP_GET_NOTIFICATIONS_POS	3
+#define CAP_GET_NOTIFICATIONS_MASK	(1U << CAP_GET_NOTIFICATIONS_POS)
+
+/** Channel Capability - Send Message Without Response function support */
+#define CAP_SEND_MSG_WITHOUT_RESP_POS	4
+#define CAP_SEND_MSG_WITHOUT_RESP_MASK	(1U << CAP_SEND_MSG_WITHOUT_RESP_POS)
+
+/** Channel Capability - Send Message With Response function support */
+#define CAP_SEND_MSG_WITH_RESP_POS	5
+#define CAP_SEND_MSG_WITH_RESP_MASK	(1U << CAP_SEND_MSG_WITH_RESP_POS)
+
+/** Helpers to enable/disable channel capability bits
+ * _c: capability variable
+ * _m: capability mask
+ */
+#define CAP_ENABLE(_c, _m)	INSERT_FIELD(_c, _m, 1)
+#define CAP_DISABLE(_c, _m)	INSERT_FIELD(_c, _m, 0)
+#define CAP_GET(_c, _m)		EXTRACT_FIELD(_c, _m)
 
 #if __riscv_xlen == 64
 #define SHMEM_PHYS_ADDR(_hi, _lo) (_lo)
@@ -85,7 +110,6 @@ static inline void *hart_shmem_base(struct mpxy_state *rs)
 						rs->shmem.shmem_addr_lo);
 }
 
-
 /** Make sure all attributes are packed for direct memcpy in ATTR_READ */
 #define assert_field_offset(field, attr_offset)				\
 	_Static_assert(							\
@@ -98,12 +122,13 @@ assert_field_offset(msg_proto_id, SBI_MPXY_ATTR_MSG_PROT_ID);
 assert_field_offset(msg_proto_version, SBI_MPXY_ATTR_MSG_PROT_VER);
 assert_field_offset(msg_data_maxlen, SBI_MPXY_ATTR_MSG_MAX_LEN);
 assert_field_offset(msg_send_timeout, SBI_MPXY_ATTR_MSG_SEND_TIMEOUT);
+assert_field_offset(msg_completion_timeout, SBI_MPXY_ATTR_MSG_COMPLETION_TIMEOUT);
 assert_field_offset(capability, SBI_MPXY_ATTR_CHANNEL_CAPABILITY);
+assert_field_offset(sse_event_id, SBI_MPXY_ATTR_SSE_EVENT_ID);
 assert_field_offset(msi_control, SBI_MPXY_ATTR_MSI_CONTROL);
 assert_field_offset(msi_info.msi_addr_lo, SBI_MPXY_ATTR_MSI_ADDR_LO);
 assert_field_offset(msi_info.msi_addr_hi, SBI_MPXY_ATTR_MSI_ADDR_HI);
 assert_field_offset(msi_info.msi_data, SBI_MPXY_ATTR_MSI_DATA);
-assert_field_offset(sse_event_id, SBI_MPXY_ATTR_SSE_EVENT_ID);
 assert_field_offset(eventsstate_ctrl, SBI_MPXY_ATTR_EVENTS_STATE_CONTROL);
 
 /**
@@ -145,38 +170,47 @@ bool sbi_mpxy_channel_available(void)
 
 static void mpxy_std_attrs_init(struct sbi_mpxy_channel *channel)
 {
+	u32 capability = 0;
 	struct mpxy_state *rs =
 		sbi_scratch_thishart_offset_ptr(mpxy_state_offset);
 
 	/* Reset values */
 	channel->attrs.msi_control = 0;
 	channel->attrs.msi_info.msi_data = 0;
-	channel->attrs.msi_info.msi_addr_lo = INVALID_ADDR;
-	channel->attrs.msi_info.msi_addr_hi = INVALID_ADDR;
+	channel->attrs.msi_info.msi_addr_lo = 0;
+	channel->attrs.msi_info.msi_addr_hi = 0;
 	channel->attrs.capability = 0;
 	channel->attrs.eventsstate_ctrl = 0;
 
-	/**
-	 * Check if MSI or SSE available for notification interrrupt.
-	 * Priority given to MSI if both MSI and SSE are avaialble.
-	 */
-	if (rs->msi_avail)
-		channel->attrs.capability =
-			CAP_ENABLE(channel->attrs.capability, CAP_MSI_MASK);
-	else if (rs->sse_avail) {
-		channel->attrs.capability =
-			CAP_ENABLE(channel->attrs.capability, CAP_SSE_MASK);
-		/* TODO: Assign SSE EVENT_ID for the channel */
+	if (channel->send_message_with_response)
+		capability = CAP_ENABLE(capability, CAP_SEND_MSG_WITH_RESP_MASK);
+
+	if (channel->send_message_without_response)
+		capability = CAP_ENABLE(capability, CAP_SEND_MSG_WITHOUT_RESP_MASK);
+
+	if (channel->get_notification_events) {
+		capability = CAP_ENABLE(capability, CAP_GET_NOTIFICATIONS_MASK);
+		/**
+		 * Check if MSI or SSE available for notification interrrupt.
+		 * Priority given to MSI if both MSI and SSE are avaialble.
+		 */
+		if (rs->msi_avail)
+			capability = CAP_ENABLE(capability, CAP_MSI_MASK);
+		else if (rs->sse_avail) {
+			capability = CAP_ENABLE(capability, CAP_SSE_MASK);
+			/* TODO: Assign SSE EVENT_ID for the channel */
+		}
+
+		/**
+		 * switch_eventstate callback support means support for events
+		 * state reporting supoprt. Enable events state reporting in
+		 * channel capability.
+		 */
+		if (channel->switch_eventsstate)
+			capability = CAP_ENABLE(capability, CAP_EVENTSSTATE_MASK);
 	}
 
-	/**
-	 * Enable Events State in channel capability if message protocol
-	 * provides callback to switch
-	 */
-	if (channel->switch_eventsstate)
-		channel->attrs.capability =
-			CAP_ENABLE(channel->attrs.capability,
-					CAP_EVENTSSTATE_MASK);
+	channel->attrs.capability = capability;
 }
 
 /**
@@ -206,9 +240,10 @@ int sbi_mpxy_init(struct sbi_scratch *scratch)
 	if (!mpxy_state_offset)
 		return SBI_ENOMEM;
 
-	/** TODO: Proper support for checking msi support from platform.
+	/**
+	 * TODO: Proper support for checking msi support from platform.
 	 * Currently disable msi and sse and use polling
-	 **/
+	 */
 	struct mpxy_state *rs =
 		sbi_scratch_thishart_offset_ptr(mpxy_state_offset);
 	rs->msi_avail = false;
@@ -249,7 +284,8 @@ int sbi_mpxy_set_shmem(unsigned long shmem_size, unsigned long shmem_phys_lo,
 
 	/** Save the current shmem details in new shmem region */
 	if (flags == SBI_EXT_MPXY_SHMEM_FLAG_OVERWRITE_RETURN) {
-		ret_buf = (unsigned long *)(ulong)SHMEM_PHYS_ADDR(shmem_phys_hi, shmem_phys_lo);
+		ret_buf = (unsigned long *)(ulong)SHMEM_PHYS_ADDR(shmem_phys_hi,
+								  shmem_phys_lo);
 		sbi_hart_map_saddr((unsigned long)ret_buf, shmem_size);
 		ret_buf[0] = cpu_to_lle(rs->shmem.shmem_size);
 		ret_buf[1] = cpu_to_lle(rs->shmem.shmem_addr_lo);
@@ -464,9 +500,10 @@ static void mpxy_write_std_attr(struct sbi_mpxy_channel *channel, u32 attr_id,
 			attrs->msi_info.msi_data = attr_val;
 		break;
 	case SBI_MPXY_ATTR_EVENTS_STATE_CONTROL:
-		if (CAP_GET(attrs->capability, CAP_EVENTSSTATE_MASK)) {
+		if (channel->switch_eventsstate && attr_val <= 1) {
 			attrs->eventsstate_ctrl = attr_val;
-			/* call message protocol callback */
+			 /* message protocol callback to enable/disable
+			 * events state reporting. */
 			channel->switch_eventsstate(attr_val);
 		}
 
@@ -563,11 +600,13 @@ out:
 	return ret;
 }
 
-int sbi_mpxy_send_message(u32 channel_id, u8 msg_id, unsigned long msg_data_len,
+int sbi_mpxy_send_message(u32 channel_id, u8 msg_id,
+			  unsigned long msg_data_len,
 			  unsigned long *resp_data_len)
 {
 	int ret;
-	void *msgbuf, *shmem_base;
+	void *shmem_base, *resp_buf;
+	u32 resp_bufsize;
 
 	struct mpxy_state *rs =
 		sbi_scratch_thishart_offset_ptr(mpxy_state_offset);
@@ -579,8 +618,11 @@ int sbi_mpxy_send_message(u32 channel_id, u8 msg_id, unsigned long msg_data_len,
 	if (!channel)
 		return SBI_ERR_NOT_SUPPORTED;
 
-	if (!channel->send_message)
-		return SBI_ERR_NOT_IMPLEMENTED;
+	if (resp_data_len && !channel->send_message_with_response)
+		return SBI_ERR_NOT_SUPPORTED;
+
+	if (!resp_data_len && !channel->send_message_without_response)
+		return SBI_ERR_NOT_SUPPORTED;
 
 	if (msg_data_len > rs->shmem.shmem_size ||
 		msg_data_len > channel->attrs.msg_data_maxlen)
@@ -588,15 +630,29 @@ int sbi_mpxy_send_message(u32 channel_id, u8 msg_id, unsigned long msg_data_len,
 
 	shmem_base = hart_shmem_base(rs);
 	sbi_hart_map_saddr((unsigned long)shmem_base, rs->shmem.shmem_size);
-	msgbuf = shmem_base;
 
-	ret = channel->send_message(channel, msg_id, msgbuf, msg_data_len,
-				    resp_data_len ? shmem_base : NULL,
-				    resp_data_len ? rs->shmem.shmem_size : 0,
-				    resp_data_len);
+	if (resp_data_len) {
+		resp_buf = shmem_base;
+		resp_bufsize = rs->shmem.shmem_size;
+		ret = channel->send_message_with_response(channel, msg_id,
+							  shmem_base,
+							  msg_data_len,
+							  resp_buf,
+							  resp_bufsize,
+							  resp_data_len);
+	}
+	else {
+		ret = channel->send_message_without_response(channel, msg_id,
+							     shmem_base,
+							     msg_data_len);
+	}
+
 	sbi_hart_unmap_saddr();
-	if (ret)
+
+	if (ret == SBI_ERR_TIMEOUT || ret == SBI_ERR_IO)
 		return ret;
+	else if (ret)
+		return SBI_ERR_FAILED;
 
 	if (resp_data_len &&
 	    (*resp_data_len > rs->shmem.shmem_size ||
@@ -622,7 +678,7 @@ int sbi_mpxy_get_notification_events(u32 channel_id, unsigned long *events_len)
 		return SBI_ERR_NOT_SUPPORTED;
 
 	if (!channel->get_notification_events)
-		return SBI_ERR_NOT_IMPLEMENTED;
+		return SBI_ERR_NOT_SUPPORTED;
 
 	shmem_base = hart_shmem_base(rs);
 	sbi_hart_map_saddr((unsigned long)shmem_base, rs->shmem.shmem_size);

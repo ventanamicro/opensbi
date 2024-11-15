@@ -39,7 +39,7 @@ int rpmi_xlate_error(enum rpmi_error error)
 		case RPMI_ERR_BAD_RANGE:
 			return SBI_EBAD_RANGE;
 		case RPMI_ERR_TIMEOUT:
-			return SBI_ETIMEOUT;
+			return SBI_ETIMEDOUT;
 		case RPMI_ERR_IO:
 			return SBI_EIO;
 		case RPMI_ERR_NO_DATA:

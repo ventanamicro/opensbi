@@ -58,7 +58,8 @@ int ras_mpxy_init(const void *fdt, int nodeoff)
 	chan_id = fdt32_to_cpu(*chan_id_p);
 
 	ra_mpxy_ch.channel_id = chan_id;
-	ra_mpxy_ch.send_message = ras_handle_message;
+	ra_mpxy_ch.send_message_with_response = ras_handle_message;
+	ra_mpxy_ch.send_message_without_response = NULL;
 	ra_mpxy_ch.read_attributes = ras_agent_read_attributes;
 	ra_mpxy_ch.get_notification_events = NULL;
 	ra_mpxy_ch.switch_eventsstate = NULL;

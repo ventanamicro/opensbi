@@ -702,6 +702,11 @@ static int rpmi_shmem_mbox_init(const void *fdt, int nodeoff, u32 phandle,
 	/* 1: M-mode, 0: S-mode */
 	mctl->base_flags.f0_priv_level =
 			resp.f0 & RPMI_BASE_FLAGS_F0_PRIVILEGE ? 1 : 0;
+
+	/* Only continue if the context privilege level is M-mode */
+	if (!mctl->base_flags.f0_priv_level)
+		goto fail_free_chan;
+
 	/* 1: Supported, 0: Not Supported */
 	mctl->base_flags.f0_ev_notif_en =
 			resp.f0 & RPMI_BASE_FLAGS_F0_EV_NOTIFY ? 1 : 0;

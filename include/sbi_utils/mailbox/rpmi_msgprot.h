@@ -87,6 +87,16 @@
 #define RPMI_DEF_TX_TIMEOUT			20
 #define RPMI_DEF_RX_TIMEOUT			20
 
+/**
+ * Common macro to generate composite version from
+ * Major and Minor numbers.
+ *
+ * RPMI has Specification version, Implementation version
+ * Service group versions which follow the same versioning
+ * encoding as below.
+ */
+#define RPMI_VERSION(Major, Minor) ((Major << 16) | Minor)
+
 /** RPMI Message Header */
 struct rpmi_message_header {
 	le16_t servicegroup_id;

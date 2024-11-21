@@ -23,6 +23,9 @@
 #include <sbi_utils/mailbox/fdt_mailbox.h>
 #include <sbi_utils/mailbox/rpmi_mailbox.h>
 
+/** Minimum Base group version required */
+#define RPMI_BASE_VERSION_MIN		RPMI_VERSION(1, 0)
+
 /**************** RPMI Transport Structures and Macros ***********/
 
 #define GET_SERVICEGROUP_ID(msg)		\
@@ -119,6 +122,7 @@ struct smq_queue_ctx {
 
 struct rpmi_srvgrp_chan {
 	u32 servicegroup_id;
+	u32 servicegroup_version;
 	struct mbox_chan chan;
 };
 
@@ -516,6 +520,7 @@ static struct mbox_chan *rpmi_shmem_mbox_request_chan(
 		return NULL;
 
 	srvgrp_chan->servicegroup_id = chan_args[0];
+	srvgrp_chan->servicegroup_version = tval[1];
 
 	return &srvgrp_chan->chan;
 }
@@ -635,9 +640,10 @@ static int rpmi_shmem_mbox_init(const void *fdt, int nodeoff, u32 phandle,
 				const struct fdt_match *match)
 {
 	int ret = 0;
-	u32 tval[2];
+	u32 tval[2], chan_args[0];
 	struct rpmi_base_get_attributes_resp resp;
 	struct rpmi_shmem_mbox_controller *mctl;
+	struct rpmi_srvgrp_chan *base_srvgrp;
 
 	mctl = sbi_zalloc(sizeof(*mctl));
 	if (!mctl)
@@ -661,13 +667,24 @@ static int rpmi_shmem_mbox_init(const void *fdt, int nodeoff, u32 phandle,
 		goto fail_free_controller;
 
 	/* Request base service group channel */
-	tval[0] = RPMI_SRVGRP_BASE;
+	chan_args[0] = RPMI_SRVGRP_BASE;
 	mctl->base_chan = mbox_controller_request_chan(&mctl->controller,
-							tval);
+							chan_args);
 	if (!mctl->base_chan) {
 		ret = SBI_ENOENT;
 		goto fail_remove_controller;
 	}
+
+	/* Get the base service group version by probing */
+	base_srvgrp = to_srvgrp_chan(mctl->base_chan);
+	ret = smq_base_get_two_u32(mctl, RPMI_BASE_SRV_PROBE_SERVICE_GROUP,
+				   &chan_args[0], tval);
+	if (ret || !tval[1])
+		goto fail_free_chan;
+
+	base_srvgrp->servicegroup_version = tval[1];
+	if (base_srvgrp->servicegroup_version < RPMI_BASE_VERSION_MIN)
+		goto fail_free_chan;
 
 	/* Get implementation id */
 	ret = smq_base_get_two_u32(mctl,

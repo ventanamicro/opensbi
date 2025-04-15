@@ -220,6 +220,7 @@ enum rpmi_servicegroup_id {
 	RPMI_SRVGRP_CLOCK = 0x0008,
 	RPMI_SRVGRP_DEVICE_POWER = 0x0009,
 	RPMI_SRVGRP_PERFORMANCE = 0x0000A,
+	RPMI_SRVGRP_MANAGEMENT_MODE = 0x000B,
 	RPMI_SRVGRP_ID_MAX_COUNT,
 
 	/* Reserved range for service groups */
@@ -993,6 +994,42 @@ struct rpmi_ras_sync_err_resp {
 	u32 returned;
 #define MAX_PEND_VECS	((RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN) - (sizeof(u32) * 3)) / sizeof(u32))
 	u32 pending_vecs[MAX_PEND_VECS];
+};
+
+/** RPMI MM ServiceGroup Service IDs */
+enum rpmi_mm_service_id {
+	RPMI_MM_SRV_ENABLE_NOTIFICATION = 0x01,
+	RPMI_MM_SRV_GET_ATTRIBUTES = 0x02,
+	RPMI_MM_SRV_COMMUNICATE = 0x03,
+	RPMI_MM_SRV_MAX_COUNT,
+};
+
+/** RPMI MM ServiceGroup Get Attributes main struct */
+struct rpmi_mm_attributes {
+	u32 mm_version;
+	u32 shmem_addr_lo;
+	u32 shmem_addr_hi;
+	u32 shmem_size;
+};
+
+/** RPMI MM ServiceGroup Get Attributes response struct */
+struct rpmi_mm_get_attributes_rsp {
+	s32 status;
+	struct rpmi_mm_attributes mma;
+};
+
+/** RPMI MM ServiceGroup Communicate request struct */
+struct rpmi_mm_communicate_req {
+	u32 mm_comm_ipdata_off;
+	u32 mm_comm_ipdata_size;
+	u32 mm_comm_opdata_off;
+	u32 mm_comm_opdata_size;
+};
+
+/** RPMI MM ServiceGroup Communicate response struct */
+struct rpmi_mm_communicate_rsp {
+	s32 status;
+	u32 mm_comm_retdata_size;
 };
 
 #endif /* !__RPMI_MSGPROT_H__ */

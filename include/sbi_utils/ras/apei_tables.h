@@ -124,6 +124,14 @@ enum {
 	AML_AS_FFH = 0X7F,
 };
 
+enum {
+	GAS_ACCESS_SZ_UNDEF,
+	GAS_ACCESS_SZ_BYTE,
+	GAS_ACCESS_SZ_WORD,
+	GAS_ACCESS_SZ_DWORD,
+	GAS_ACCESS_SZ_QWORD
+};
+
 typedef struct __packed {
 	uint8_t asid;
 	uint8_t reg_bwidth;

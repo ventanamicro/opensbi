@@ -97,7 +97,7 @@ static u64 *acpi_ghes_gas_register_alloc(void)
 	return (u64 *)(ulong)addr;
 }
 
-static void *acpi_ghes_alloc(uint64_t size)
+void *acpi_ghes_alloc(uint64_t size)
 {
 	uint64_t naddr;
 	uint64_t nsz;

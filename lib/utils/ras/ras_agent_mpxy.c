@@ -36,6 +36,9 @@ static int ras_agent_read_attributes(struct sbi_mpxy_channel *channel, u32 *outm
 static int ras_handle_message(struct sbi_mpxy_channel *channel, u32 msg_id,
 			      void *msgbuf, u32 msg_len, void *respbuf,
 			      u32 resp_max_len, unsigned long *resp_len);
+static int ras_handle_message_withoutresp(struct sbi_mpxy_channel *channel,
+					  u32 message_id, void *tx, u32 tx_len);
+
 #define MAX_RAS_RPMI_PROPS	2
 #define RAS_RPMI_BASE_PROP	SBI_MPXY_ATTR_MSGPROTO_ATTR_START
 #define RAS_AGENT_RPMI_ID	0xC
@@ -60,7 +63,7 @@ int ras_mpxy_init(const void *fdt, int nodeoff)
 
 	ra_mpxy_ch.channel_id = chan_id;
 	ra_mpxy_ch.send_message_with_response = ras_handle_message;
-	ra_mpxy_ch.send_message_without_response = NULL;
+	ra_mpxy_ch.send_message_without_response = ras_handle_message_withoutresp;
 	ra_mpxy_ch.read_attributes = ras_agent_read_attributes;
 	ra_mpxy_ch.get_notification_events = NULL;
 	ra_mpxy_ch.switch_eventsstate = NULL;
@@ -162,4 +165,10 @@ static int ras_handle_message(struct sbi_mpxy_channel *channel, u32 msg_id,
 	}
 
 	return rc;
+}
+
+static int ras_handle_message_withoutresp(struct sbi_mpxy_channel *channel,
+				  u32 message_id, void *tx, u32 tx_len)
+{
+	return ras_handle_message(channel, message_id, tx, tx_len, NULL, 0, NULL);
 }

@@ -46,5 +46,6 @@ void acpi_ghes_record_errors(uint8_t source_id, acpi_ghes_error_info *einfo);
 int acpi_ghes_get_num_err_srcs(void);
 int acpi_ghes_get_err_srcs_list(uint32_t *src_ids, uint32_t sz);
 int acpi_ghes_get_err_src_desc(uint32_t src_id, acpi_ghesv2 *ghes);
+void *acpi_ghes_alloc(uint64_t size);
 
 #endif

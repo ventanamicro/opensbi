@@ -20,6 +20,7 @@
 #include <sbi_utils/ras/riscv_reri_regs.h>
 #include <sbi_utils/ras/apei_tables.h>
 #include <sbi_utils/ras/ghes.h>
+#include <sbi_utils/ras/ras_agent_einj.h>
 #include <sbi_utils/mailbox/fdt_mailbox.h>
 #include <sbi_utils/mailbox/rpmi_mailbox.h>
 #include <sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h>
@@ -113,10 +114,12 @@ static int ras_handle_message(struct sbi_mpxy_channel *channel, u32 msg_id,
 	int rc = SBI_SUCCESS;
 	int nr, nes;
 	u32 *src_list;
-	u32 src_id;
+	u32 src_id, inst_id;
 	uint8_t *src_desc;
 	struct ras_rpmi_resp_hdr *rhdr = (struct ras_rpmi_resp_hdr *)respbuf;
 	u32 *nsrcs;
+	volatile u32 *index;
+	einj_inst_entry_t *inst = NULL;
 #define MAX_ID_BUF_SZ (sizeof(u32) * MAX_ERR_SRCS)
 
 	switch(msg_id) {
@@ -163,6 +166,58 @@ static int ras_handle_message(struct sbi_mpxy_channel *channel, u32 msg_id,
 		rhdr->returned = sizeof(acpi_ghesv2);
 		rhdr->remaining = 0;
 		*resp_len = sizeof(*rhdr) + sizeof(acpi_ghesv2);
+		break;
+
+	case RAS_EINJ_GET_NUM_INSTRUCTIONS:
+		if (!respbuf) {
+			sbi_printf("%s: Invalid response buffer\n", __func__);
+			return -SBI_EINVAL;
+		}
+
+		memset(respbuf, 0, resp_max_len);
+		nes = einj_get_total_injection_entries();
+		rhdr->flags = 0;
+		rhdr->status = RPMI_SUCCESS;
+		rhdr->remaining = 0;
+		rhdr->returned = cpu_to_le32(nes);
+
+		nsrcs = (u32 *)BUF_TO_DATA(respbuf);
+		*nsrcs = cpu_to_le32(nes);
+		*resp_len = sizeof(*rhdr) + (sizeof(u32));
+		rc = SBI_SUCCESS;
+		break;
+
+	case RAS_EINJ_GET_INSTRUCTION:
+		if (!respbuf)
+			return -SBI_EINVAL;
+		index = (volatile u32 *)BUF_TO_DATA(respbuf);
+		inst_id = *index;
+		inst = einj_get_instruction(inst_id);
+		if (inst == NULL)
+			return -SBI_ENOENT;
+
+		if (resp_max_len <= sizeof(einj_inst_entry_t))
+			return -SBI_ENOSPC;
+
+
+		memset(respbuf, 0, resp_max_len);
+		memcpy((void *)BUF_TO_DATA(respbuf), (void *)inst, sizeof(einj_inst_entry_t));
+		*resp_len = sizeof(*rhdr) + sizeof(einj_inst_entry_t);
+		rhdr->flags = 0;
+		rhdr->status = RPMI_SUCCESS;
+		rhdr->remaining = 0;
+		rhdr->returned = sizeof(einj_inst_entry_t);
+		rc = SBI_SUCCESS;
+		break;
+
+	case RAS_EINJ_EXECUTE_OPERATION:
+		einj_execute_operation();
+		rc = SBI_SUCCESS;
+		break;
+
+	case RAS_EINJ_TRIGGER_ERROR:
+		einj_trigger_operation();
+		rc = SBI_SUCCESS;
 		break;
 
 	default:

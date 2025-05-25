@@ -16,6 +16,11 @@ config FDT_RAS_RPMI
 config FDT_SBI_RAS_AGENT
 	bool "FDT SBI RAS Agent driver"
 	default y
+
+config FDT_SBI_RAS_AGENT_EINJ
+	bool "Support for APEI Error INJection"
+	depends on FDT_SBI_RAS_AGENT
+	default y
 endif
 
 endmenu

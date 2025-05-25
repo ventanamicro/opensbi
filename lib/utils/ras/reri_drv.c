@@ -22,6 +22,7 @@
 #include <sbi_utils/ras/apei_tables.h>
 #include <sbi_utils/ras/ghes.h>
 #include <sbi_utils/ras/reri_drv.h>
+#include <sbi_utils/ras/ras_agent_einj.h>
 
 struct reri_generic_dev {
 	uint64_t addr;
@@ -232,6 +233,13 @@ static int fdt_parse_reri_device(const void *fdt, int nodeoff)
 				if ((ret = acpi_ghes_new_error_source(src_id, sse_vec)) < 0)
 					continue;
 
+				if ((ret = einj_register_error_source(src_id, addr + (i * RERI_ERR_BANK_SIZE))) != 0) {
+					sbi_printf("Failed register error source %u with EINJ framework."
+						   "Error injection will fail.\n",
+						   src_id);
+					return ret;
+				}
+
 				ret = sbi_sse_add_event(sse_vec, NULL);
 				ret = (ret != SBI_EALREADY) ? ret : 0;
 				if (ret) {
@@ -281,6 +289,15 @@ int reri_drv_init(const void *fdt, int nodeoff, const struct fdt_match *match)
 			return ret;
 
 		acpi_ghes_init(addr, size);
+
+		/*
+		 * NOTE: Initialize error injection framework. EINJ uses the GHES reserved memory
+		 * for the entries and the GAS regions. acpi_ghes_init must always be called
+		 * before einj_init.
+		 */
+		ret = einj_init(fdt, nodeoff);
+		if (ret)
+			return ret;
 	}
 
 	fdt_for_each_subnode(doffset, fdt, nodeoff) {

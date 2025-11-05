@@ -245,7 +245,9 @@ int generic_final_init(bool cold_boot)
 	fdt_fixups(fdt);
 	fdt_domain_fixup(fdt);
 
+	/* Minimize the empty space in FDT to 4KB */
 	fdt_pack(fdt);
+	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 4096);
 
 	return 0;
 }
